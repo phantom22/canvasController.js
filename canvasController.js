@@ -498,7 +498,7 @@ const C = new CanvasController({
   id: "display",
   fps: 240,
   items: [
-    {shape:"arc",dimensions:[0,0,30,0,2 * Math.PI],color:{fill:"#E69F66"},physics:true,bounce:0.9,events:[/*{drag:true,assists:[50,1500,2000]},*/{type:"mousedown",assist:50,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]}/*,
+    {shape:"arc",dimensions:[0,0,30,0,2 * Math.PI],color:{fill:"#E69F66"},physics:true,bounce:0.9,events:[/*{drag:true,assists:[50,1500,2000]},*/{type:"mousedown",assist:25,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]}/*,
     {dimensions:[500,350,250,220],color:{fill:"#E69F66"},physics:true,events:[{drag:true},{type:"mousedown",assist:0,callback:function(e){this.setItemColor(e.id, `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.4)`)}}]}*/
   ]
 });
