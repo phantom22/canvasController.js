@@ -155,7 +155,7 @@ class CanvasController {
 
   checkMouse({mouse,shape,bordersX,bordersY,center,radius,assist}) {
 
-  	const t = this, 
+    const t = this, 
     checkCursor = ([a,b],[c,d],[e,f]) => c <= a  && a <= d && e <= b && b <= f;
 
     if (shape == "arc") {
@@ -256,8 +256,8 @@ class CanvasController {
       _2D.strokeStyle = typeof stroke == "string" ? stroke : _2D.fillStyle;
 
       switch (shape) {
-      	case "fillRect": _2D[shape](a,b,c,d); break;
-      	case "arc": _2D.beginPath(); _2D[shape](a,b,c,d,e); _2D.fill(); _2D.stroke(); break;
+        case "fillRect": _2D[shape](a,b,c,d); break;
+        case "arc": _2D.beginPath(); _2D[shape](a,b,c,d,e); _2D.fill(); _2D.stroke(); break;
       }
 
     }
@@ -265,14 +265,14 @@ class CanvasController {
   }
 
   randomizeItemState(i) {
-    const t = this, item = t.items[i], g = [-9.81, 9.81];
+    const t = this, item = t.items[i], g = [-19.62,-9.81, 9.81,19.62];
 
     if (item.shape == "arc") {
       const r = item.dimensions[2], [clientWidth, clientHeight] = t.client,
-      newX = Math.floor(Math.random() * (clientWidth-r)) + r,
-      newY = Math.floor(Math.random() * (clientHeight-r)) + r,
+      newX = Math.floor(Math.random() * (clientWidth-r*2)) + r,
+      newY = Math.floor(Math.random() * (clientHeight-r*5)) + r*3,
       newHA = Math.floor(Math.random() * 1500) + 800;
-      t.items[i].physX.gravity = g[Math.floor(Math.random() * 2)];
+      t.items[i].physX.gravity = g[Math.floor(Math.random() * 4)];
 
       t.setItemPos(i,{x:newX,y:newY});
       t.setItemHAcc(i,newHA);
@@ -284,17 +284,17 @@ class CanvasController {
   }
 
   setItemPos(i,{x,y}) {
-  	/*if (typeof this.items[i] == "undefined") return;
+    /*if (typeof this.items[i] == "undefined") return;
     if (typeof x == "number" && typeof y == "number") {*/
-  	  this.items[i].dimensions[0] = x;
-  	  this.items[i].dimensions[1] = y;
+      this.items[i].dimensions[0] = x;
+      this.items[i].dimensions[1] = y;
     /*}*/
   }
 
   setItemColor(i,color) {
-  	/*if (typeof this.items[i] == "undefined") return;
+    /*if (typeof this.items[i] == "undefined") return;
     if (typeof color == "string") {*/
-  	  this.items[i].color.fill = color;
+      this.items[i].color.fill = color;
       this.items[i].color.stroke = color;
     /*}*/
   }
@@ -344,35 +344,35 @@ class CanvasController {
   }
 
   getVar(name) {
-  	return this.variables[name]
+    return this.variables[name]
   }
 
   setVar(name,value) {
-  	this.variables[name] = value;
+    this.variables[name] = value;
   }
 
   delVar(name) {
-  	delete this.variables[name]
+    delete this.variables[name]
   }
 
   centerMouseX() {
-  	return this.evt.shape == "arc" ? this.evt.mouse.x : this.evt.mouse.x - this.evt.width / 2;
+    return this.evt.shape == "arc" ? this.evt.mouse.x : this.evt.mouse.x - this.evt.width / 2;
   }
 
   centerMouseY() {
-  	return this.evt.shape == "arc" ? this.evt.mouse.y : this.evt.mouse.y - this.evt.height / 2;
+    return this.evt.shape == "arc" ? this.evt.mouse.y : this.evt.mouse.y - this.evt.height / 2;
   }
 
   centerMouse() {
-  	return [this.centerMouseX(),this.centerMouseY()];
+    return [this.centerMouseX(),this.centerMouseY()];
   }
 
   disableCursor() {
-  	this.getCanvas().style.cursor = "none";
+    this.getCanvas().style.cursor = "none";
   }
 
   enableCursor() {
-  	this.getCanvas().style.cursor = "";
+    this.getCanvas().style.cursor = "";
   }
 
   getCanvas() {
@@ -400,13 +400,13 @@ class CanvasController {
 
   validate(obj) {
 
-  	const t = this, {id} = obj, valid = { shapes: ["fillRect","arc"], types: ["mousedown","mouseup","mouseover","mouseout","dblclick","click","mousemove"] };
-  	let {fps,items} = obj;
+    const t = this, {id} = obj, valid = { shapes: ["fillRect","arc"], types: ["mousedown","mouseup","mouseover","mouseout","dblclick","click","mousemove"] };
+    let {fps,items} = obj;
 
-  	if (typeof id == "undefined" || !document.getElementById(id)) return;
-  	t.id = id;
-  	t.fps = typeof fps == "number" ? fps : 60;
-  	t.items = Array.isArray(items) ? items : [];
+    if (typeof id == "undefined" || !document.getElementById(id)) return;
+    t.id = id;
+    t.fps = typeof fps == "number" ? fps : 60;
+    t.items = Array.isArray(items) ? items : [];
     t.events = {};
     t.isPaused = false;
     t.evt = {mouse:[],dimensions:[]};
@@ -415,37 +415,37 @@ class CanvasController {
 
     for (let i in items) {
 
-    	const item = items[i];
-    	let {shape,dimensions,color,physics,gravity,bounce,events} = item, _validEvents = [], _drag, limits;
+      const item = items[i];
+      let {shape,dimensions,color,physics,gravity,bounce,events} = item, _validEvents = [], _drag, limits;
 
-    	shape = typeof shape == "string" && valid.shapes.includes(shape) ? shape : "fillRect";
-    	if (!Array.isArray(dimensions) || dimensions.length < 4 || isNaN(dimensions.reduce((a,b)=>a+b))) continue;
-    	color = typeof color == "object" ? color : {};
+      shape = typeof shape == "string" && valid.shapes.includes(shape) ? shape : "fillRect";
+      if (!Array.isArray(dimensions) || dimensions.length < 4 || isNaN(dimensions.reduce((a,b)=>a+b))) continue;
+      color = typeof color == "object" ? color : {};
       color.fill = typeof color.fill == "string" ? color.fill : "black";
       color.stroke = typeof color.stroke == "string" ? color.stroke : "black";
-    	physics = typeof physics == "boolean" ? physics : false;
-    	gravity = typeof gravity == "number" ? gravity : 9.81;
-    	bounce = typeof bounce == "number" ? bounce : 0.25;
-    	if (physics == true) t.physics.push(Number(i));
-    	events = Array.isArray(events) ? events : [];
+      physics = typeof physics == "boolean" ? physics : false;
+      gravity = typeof gravity == "number" ? gravity : 9.81;
+      bounce = typeof bounce == "number" ? bounce : 0.25;
+      if (physics == true) t.physics.push(Number(i));
+      events = Array.isArray(events) ? events : [];
 
-    	_drag = events.map(v => v.drag == true);
+      _drag = events.map(v => v.drag == true);
 
-    	if (_drag.includes(true)) {
+      if (_drag.includes(true)) {
 
-    		const d = _drag.indexOf(true), event = events[d], {assists,dragAxis} = event,
+      const d = _drag.indexOf(true), event = events[d], {assists,dragAxis} = event,
         [ a, b, c ] = Array.isArray(assists) && assists.length == 3 && typeof (assists.reduce((a,b)=>a+b)) == "number" ? assists : [15,1000,2000];
         let f, counter = 0;
 
         for (let d = 0; d < _drag.length; d++) {
           if (_drag[d] == true) {
-        		(d - counter) == 0 ? items[i].events.splice(0,1) : items[i].events.splice(d - counter);
-        		counter += 1;
-        	}
+            (d - counter) == 0 ? items[i].events.splice(0,1) : items[i].events.splice(d - counter);
+            counter += 1;
+          }
         }
 
         items[i].events.push({type:"mousedown",assist:a,callback:function(e){this.items[e.id].physX.isDragged = true;this.disableCursor();}},{type:"mouseup",assist:c,callback:function(e){this.items[e.id].physX.isDragged = false;this.enableCursor();}});
-          	  
+              
         switch(dragAxis) {
           case "x": f = {type:"mousemove",assist:b,callback:function(e){if (this.itemIsDragged(e.id)) {this.setItemPos(e.id,{x:this.centerMouseX()})}}}; break;
           case "y": f = {type:"mousemove",assist:b,callback:function(e){if (this.itemIsDragged(e.id)) {this.setItemPos(e.id,{y:this.centerMouseY()})}}}; break;
@@ -455,32 +455,32 @@ class CanvasController {
         items[i].events.push(f);
 
         events = items[i].events;
-    	}
+      }
 
-    	for (let e in events) {
+      for (let e in events) {
 
-    		const event = events[e], _eventKeys = Object.keys(t.events);
-    		let {type,callback,bindself,assist} = event;
+        const event = events[e], _eventKeys = Object.keys(t.events);
+        let {type,callback,bindself,assist} = event;
 
-    		if (typeof type != "string" || !valid.types.includes(type) || typeof callback != "function") continue;
-    		bindself = typeof bindself == "boolean" ? bindself : true;
-    		assist = typeof assist == "number" ? assist : 0;
+        if (typeof type != "string" || !valid.types.includes(type) || typeof callback != "function") continue;
+        bindself = typeof bindself == "boolean" ? bindself : true;
+        assist = typeof assist == "number" ? assist : 0;
 
-    		if (!_eventKeys.includes(type)) {
-    			t.events[type] = [];
-    			t.events[type].push([Number(i),Number(e)]);
-    		}
-    		else if (Array.isArray(t.events[type]) && !t.events[type].map(v => v.join(",")).includes(`${i}-${e}`)) {
-				  t.events[type].push([Number(i),Number(e)])
-    		}
+        if (!_eventKeys.includes(type)) {
+          t.events[type] = [];
+          t.events[type].push([Number(i),Number(e)]);
+        }
+        else if (Array.isArray(t.events[type]) && !t.events[type].map(v => v.join(",")).includes(`${i}-${e}`)) {
+          t.events[type].push([Number(i),Number(e)])
+        }
 
-    		_validEvents.push(e);
+        _validEvents.push(e);
 
-    	}
+      }
 
-    	_validEvents = _validEvents.map(v => events[Number(v)]);
+      _validEvents = _validEvents.map(v => events[Number(v)]);
 
-    	this.items[i] = { shape, dimensions, color, enablePhysics: physics, events: _validEvents, physX: {acc:[0,0],gravity,bounce,isDragged:false} };
+      this.items[i] = { shape, dimensions, color, enablePhysics: physics, events: _validEvents, physX: {acc:[0,0],gravity,bounce,isDragged:false} };
       const context = t.getCanvas().getContext("2d");
       this._2D = () => context;
 
@@ -496,31 +496,31 @@ class CanvasController {
 
 const C = new CanvasController({
   id: "display",
-  fps: 240,
+  fps: 60,
   items: [
-    {shape:"arc",dimensions:[0,0,30,0,2 * Math.PI],color:{fill:"#E69F66"},physics:true,bounce:0.9,events:[/*{drag:true,assists:[50,1500,2000]},*/{type:"mousedown",assist:25,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]}/*,
-    {dimensions:[500,350,250,220],color:{fill:"#E69F66"},physics:true,events:[{drag:true},{type:"mousedown",assist:0,callback:function(e){this.setItemColor(e.id, `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.4)`)}}]}*/
+    {shape:"arc",dimensions:[0,0,30,0,2 * Math.PI],color:{fill:"black",stroke:"black"},physics:true,bounce:0.9,events:[/*{drag:true,assists:[50,1500,2000]},*/{type:"mousedown",assist:50,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]},
+    {dimensions:[500,350,250,220],color:{fill:"black"},physics:true,events:[{drag:true},{type:"mousedown",assist:50,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]}
   ]
 });
 
 // {
-//	id,
-//	fps,
-//	items: [ 
+//  id,
+//  fps,
+//  items: [ 
 //    {
-//		shape,
-//		dimensions,
+//    shape,
+//    dimensions,
 //      color,
 //      events: [{
-// 		  type,
-// 		  callback (evt), (evt is needed to access the evt object if needed)
-//		  bindself, (by default set to true, use it only to set it to false)
-// 		  assist (click assist: bigger number = bigger hitbox)
+//       type, 
+//       callback (evt), (evt is needed to access the evt object if needed)
+//      bindself, (by default set to true, use it only to set it to false)
+//       assist (click assist: bigger number = bigger hitbox)
 //      },
-//		{
-//		  drag,
-//		  assists
-//		}]
+//    {
+//      drag,
+//      assists
+//    }]
 //    }
 //  ]
 // }
