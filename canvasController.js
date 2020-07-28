@@ -72,7 +72,7 @@ class CanvasController {
 //                                      NEEDS OPTIMIZATION
   gravity() {
 
-    const t = this, items = t.physics, fps = t.fps, [clientWidth, clientHeight] = t.client,
+    const t = this, items = t.physX, fps = t.fps, [clientWidth, clientHeight] = t.client,
     inBounds = (a, [b, c]) => { 
 
       let r = 0;
@@ -92,16 +92,16 @@ class CanvasController {
 
       const id = items[i]
 
-      if (t.items[id].enablePhysics && !t.itemIsDragged(id)) {
+      if (t.items[id].enablePhysX && !t.itemIsDragged(id)) {
 
-        const item = t.items[id], physX = item.physX, {bounce, gravity} = physX, {shape, dimensions} = item, [x, y] = dimensions;
-        let acc = physX.acc, limitsX, limitsY, nextPos = [x, y], adjust1, adjust2;
+        const item = t.items[id], physX = item.physX, {gravity, bounce, friction, acc} = physX, {shape, dimensions} = item, [x, y] = dimensions;
+        let limitsX, limitsY, nextPos = [x, y], adjust1, adjust2;
 
         // y
         acc[1] += gravity / fps;
         nextPos[1] += acc[1];
         // x
-        //acc[0] *= 0.995;
+        //acc[0] *= friction;
         nextPos[0] += acc[0] / fps;
 
         if (shape == "arc") {
@@ -284,19 +284,13 @@ class CanvasController {
   }
 
   setItemPos(i,{x,y}) {
-    /*if (typeof this.items[i] == "undefined") return;
-    if (typeof x == "number" && typeof y == "number") {*/
-      this.items[i].dimensions[0] = x;
-      this.items[i].dimensions[1] = y;
-    /*}*/
+    this.items[i].dimensions[0] = x;
+    this.items[i].dimensions[1] = y;
   }
 
   setItemColor(i,color) {
-    /*if (typeof this.items[i] == "undefined") return;
-    if (typeof color == "string") {*/
-      this.items[i].color.fill = color;
-      this.items[i].color.stroke = color;
-    /*}*/
+    this.items[i].color.fill = color;
+    this.items[i].color.stroke = color;
   }
 
   setItemAcc(i,acc) {
@@ -330,17 +324,11 @@ class CanvasController {
   }
 
   setItemFillColor(i,color) {
-    /*if (typeof this.items[i] == "undefined") return;
-    if (typeof color == "string") {*/
-      this.items[i].color.fill = color;
-    /*}*/
+    this.items[i].color.fill = color;
   }
 
   setItemStrokeColor(i,color) {
-    /*if (typeof this.items[i] == "undefined") return;
-    if (typeof color == "string") {*/
-      this.items[i].color.stroke = color;
-    /*}*/
+     this.items[i].color.stroke = color;
   }
 
   getVar(name) {
@@ -364,7 +352,7 @@ class CanvasController {
   }
 
   centerMouse() {
-    return [this.centerMouseX(),this.centerMouseY()];
+    return [this.centerMouseX(), this.centerMouseY()];
   }
 
   disableCursor() {
@@ -411,22 +399,29 @@ class CanvasController {
     t.isPaused = false;
     t.evt = {mouse:[],dimensions:[]};
     t.variables = {};
-    t.physics = [];
+    t.physX = [];
 
     for (let i in items) {
 
       const item = items[i];
-      let {shape,dimensions,color,physics,gravity,bounce,events} = item, _validEvents = [], _drag, limits;
+      let {shape ,dimensions, color, physX, events} = item, 
+      {bounce, friction, gravity} = physX,
+      enablePhysX = physX.enable,
+      _validEvents = [], _drag, limits;
 
       shape = typeof shape == "string" && valid.shapes.includes(shape) ? shape : "fillRect";
       if (!Array.isArray(dimensions) || dimensions.length < 4 || isNaN(dimensions.reduce((a,b)=>a+b))) continue;
+
       color = typeof color == "object" ? color : {};
       color.fill = typeof color.fill == "string" ? color.fill : "black";
       color.stroke = typeof color.stroke == "string" ? color.stroke : "black";
-      physics = typeof physics == "boolean" ? physics : false;
-      gravity = typeof gravity == "number" ? gravity : 9.81;
-      bounce = typeof bounce == "number" ? bounce : 0.25;
-      if (physics == true) t.physics.push(Number(i));
+
+      if (physX) {
+      	gravity = typeof gravity == "number" ? gravity : 9.81;
+      	bounce = typeof bounce == "number" ? bounce : 0.4;
+      	friction = typeof friction == "number" ? friction : 0;
+  	  }
+
       events = Array.isArray(events) ? events : [];
 
       _drag = events.map(v => v.drag == true);
@@ -480,7 +475,8 @@ class CanvasController {
 
       _validEvents = _validEvents.map(v => events[Number(v)]);
 
-      this.items[i] = { shape, dimensions, color, enablePhysics: physics, events: _validEvents, physX: {acc:[0,0],gravity,bounce,isDragged:false} };
+      t.physX.push(Number(i));
+      this.items[i] = { shape, dimensions, color, enablePhysX, events: _validEvents, physX: {gravity, bounce, friction, acc:[0,0], isDragged:false} };
       const context = t.getCanvas().getContext("2d");
       this._2D = () => context;
 
@@ -496,10 +492,9 @@ class CanvasController {
 
 const C = new CanvasController({
   id: "display",
-  fps: 60,
+  fps: 240,
   items: [
-    {shape:"arc",dimensions:[0,0,30,0,2 * Math.PI],color:{fill:"black",stroke:"black"},physics:true,bounce:0.9,events:[/*{drag:true,assists:[50,1500,2000]},*/{type:"mousedown",assist:50,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]},
-    {dimensions:[500,350,250,220],color:{fill:"black"},physics:true,events:[{drag:true},{type:"mousedown",assist:50,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]}
+    {shape:"arc",dimensions:[0,0,30,0,2 * Math.PI],physX:{enable:true,bounce:1},events:[{type:"mousedown",assist:50,callback:function(e){this.setItemRandomColor(e.id);this.randomizeItemState(e.id)}}]}
   ]
 });
 
@@ -508,20 +503,24 @@ const C = new CanvasController({
 //  fps,
 //  items: [ 
 //    {
-//    shape,
-//    dimensions,
-//      color,
-//      events: [{
-//       type, 
-//       callback (evt), (evt is needed to access the evt object if needed)
-//      bindself, (by default set to true, use it only to set it to false)
-//       assist (click assist: bigger number = bigger hitbox)
-//      },
-//    {
-//      drag,
-//      assists
-//    }]
-//    }
-//  ]
+//      shape,
+//      dimensions,
+//      color: {fill, stroke},
+//      physX: {enable, bounce, friction, gravity},
+//        events: [{
+//          type, 
+//          callback (evt), (evt is needed to access the evt object if needed)
+//          bindself, (by default set to true, use it only to set it to false)
+//          assist (click assist: bigger number = bigger hitbox)
+//        },{
+//        drag: true,
+//          assists: [mouseDown,mouseMove,MouseUp]
+//        },
+//        {
+//         drag,
+//         assists
+//       }]
+//     }
+//   ]
 // }
 // TODO: enable screen collision (add switch(shape) ), enable item collision
