@@ -27,7 +27,8 @@ class CanvasController {
         /**/
         if (typeof id == "undefined" || !document.getElementById(id)) return;
         t.id = id;
-        t.fps = typeof fps == "number" ? fps : 60;
+        fps = typeof fps == "number" ? fps : 60;
+        t.fps = () => fps;
         t.grid = typeof grid == "boolean" ? grid : false;
         t.items = [];
 
@@ -231,7 +232,7 @@ class CanvasController {
 
         if (!this._isPaused) {
 
-            const t = this, items = t._physX, fps = t.fps, [clientWidth, clientHeight] = t.client,
+            const t = this, items = t._physX, fps = t.fps(), [clientWidth, clientHeight] = t.client,
             inBounds = (a, [b, c]) => { 
 
                 let r = 0;
@@ -526,8 +527,10 @@ class CanvasController {
 
     start() {
         const t = this, drawFrame = t.drawFrame;
+        let dFrames = 0;
+        t.drawnFrames = () => dFrames;
         this.drawFrame();
-        t.refreshFrame = setInterval((function(){drawFrame.bind(this)()}).bind(t),(1000/t.fps));
+        t.refreshFrame = setInterval((function(){drawFrame.bind(this)(); dFrames++}).bind(t),(1000/t.fps()));
     }
 
     pause() {
