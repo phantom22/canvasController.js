@@ -741,7 +741,14 @@ class CanvasItem {
 // {
 //  id,
 //  fps,
-//  grid,
+//  grid: {
+//    draw, 
+//    cellSize,
+//    lineWidth,
+//    color,
+//    lineDash
+//  },
+//  background,
 //  items: [ 
 //    {
 //      shape,
@@ -750,17 +757,13 @@ class CanvasItem {
 //      physX: {enable, bounce, friction, gravity},
 //        events: [{
 //          type, 
-//          callback (evt), (evt is needed to access the evt object if needed)
+//          callback (item,evt), (item gives an easy access to all the parameters of the affected item)
 //          bindself, (by default set to true, use it only to set it to false)
 //          assist (click assist: bigger number = bigger hitbox)
 //        },{
-//        drag: true,
+//        type: "drag",
 //          assists: [mouseDown,mouseMove,MouseUp]
-//        },
-//        {
-//         drag,
-//         assists
-//       }]
+//        }]
 //     }
 //   ]
 // }
