@@ -4,28 +4,27 @@ class CanvasController {
 
         const t = this;
 
-            t.events = {};
-            t._isPaused = false;
-            t._evt = {mouse:[],dimensions:[]};
-            t._vars = {};
-            t._physX = [];
-            t.speedMult = 1;
+        t.events = {};
+        t._isPaused = false;
+        t._evt = {mouse:[],dimensions:[]};
+        t._vars = {};
+        t._physX = [];
+        t.speedMult = 1;
 
         t.validate(object);
 
     }
 
     // {id,fps,grid,items}
-    // {shape,dimensions,color:{fill,stroke},physX:{enable,bounce,friction},events}
-    // {type,assist,callback,bindself}
     validate(obj) {
 
         const t = this,
-        /**/
-        /**/ id = obj.id;
-        /**/ let {fps,items,grid} = obj;
-        /**/
+              id = obj.id;
+
+        let {fps,items,grid} = obj;
+        
         if (typeof id == "undefined" || !document.getElementById(id)) return;
+
         t.id = id;
         fps = typeof fps == "number" ? fps : 60;
         t.fps = () => fps;
@@ -48,14 +47,14 @@ class CanvasController {
 
     // {shape,dimensions,color:{fill,stroke},physX:{enable,bounce,friction},events}
     addItem(item) {
-        /**/
-        /**/const t = this, index = t.items.length, shapes = {"fillRect":4,"arc":5},
-        /**/      {shape, dimensions, physX, events} = typeof item == "object" ? item : {};
-        /**/let   color = typeof item.color == "object" ? color : {},
-        /**/      {fill, stroke                           } = typeof color == "object" ? color : {},
-        /**/      {enable, gravity, bounce, friction, acc } = typeof physX == "object" ? physX : {},
-        /**/      output = {};
-        /**/
+        
+        const t = this, index = t.items.length, shapes = {"fillRect":4,"arc":5},
+              {shape, dimensions, physX, events} = typeof item == "object" ? item : {};
+        let   color = typeof item.color == "object" ? color : {},
+              {fill, stroke                           } = typeof color == "object" ? color : {},
+              {enable, gravity, bounce, friction, acc } = typeof physX == "object" ? physX : {},
+              output = {};
+        
         if (Object.keys(shapes).includes(shape) && dimensions.length == shapes[shape]) {
 
             //events = Array.isArray(events) ? events : [];
@@ -80,7 +79,7 @@ class CanvasController {
             t.registerEvents(index,_validEvents);
             output = {shape,dimensions,color,physX,events:_validEvents};
 
-            t.items.push(output);
+            t.items.push(new CanvasItem(output));
 
         }
 
@@ -92,11 +91,11 @@ class CanvasController {
         const _events = [], types = ["mousedown","mouseup","mouseover","mouseout","dblclick","click","mousemove","drag"/*,"hover"*/], axis = ["x","y"];
 
         for (let e in events) {
-        /**/
-        /**/const event = events[e], 
-        /**/      {type} = event;
-        /**/let   {callback,assist,dragAxis,assists,bindself} = event;
-        /**/
+            
+            const event = events[e], 
+                  {type} = event;
+            let   {callback,assist,dragAxis,assists,bindself} = event;
+            
             const typeIndex = typeof type == "string" ? types.indexOf(type) : -1;
             bindself = typeof bindself == "boolean" ? bindself : true;
             callback = typeof callback == "function" ? callback : function(){};
@@ -120,12 +119,12 @@ class CanvasController {
                 c = typeof c == "number" ? c : 2000;
                 dragAxis = typeof dragAxis == "string" && axis.includes(dragAxis) ? dragAxis : "";
 
-                _dragEvents.push({type:"mousedown",assist:a,callback:function(e){this.items[e.id].physX.isDragged=true;this.disableCursor();}},{type:"mouseup",assist:c,callback:function(e){this.items[e.id].physX.isDragged=false;this.enableCursor();}})
+                _dragEvents.push({type:"mousedown",assist:a,callback:function(i){i._isDragged(true);this.disableCursor();}},{type:"mouseup",assist:c,callback:function(i){i._isDragged(false);this.enableCursor();}})
 
                 switch(dragAxis) {
-                    case "x": _dragEvents.push({type:"mousemove",assist:b,callback:function(e){if (this.itemIsDragged(e.id)) {this.setItemPos(e.id,{x:this.centerMouseX()})}},bindself:true}); break;
-                    case "y": _dragEvents.push({type:"mousemove",assist:b,callback:function(e){if (this.itemIsDragged(e.id)) {this.setItemPos(e.id,{y:this.centerMouseY()})}},bindself:true}); break;
-                    default : _dragEvents.push({type:"mousemove",assist:b,callback:function(e){if (this.itemIsDragged(e.id)) {const [x,y] = this.centerMouse(); this.setItemPos(e.id,{x,y})}},bindself:true}); break;
+                    case "x": _dragEvents.push({type:"mousemove",assist:b,callback:function(i){if (i.isDragged()) {i._x(this.centerMouseX())}},bindself:true}); break;
+                    case "y": _dragEvents.push({type:"mousemove",assist:b,callback:function(i){if (i.isDragged()) {i._y(this.centerMouseY())}},bindself:true}); break;
+                    default : _dragEvents.push({type:"mousemove",assist:b,callback:function(i){if (i.isDragged()) {const [x,y] = this.centerMouse(); i._xy({x,y})}},bindself:true}); break;
                 }
 
                 _events.push(..._dragEvents);
@@ -173,50 +172,41 @@ class CanvasController {
 
     eventHandler(evt) {
     
-        const t = this, mouse = [evt.clientX, evt.clientY], type = evt.type, event = t.events[type];
+        const t = this, mouse = [evt.clientX, evt.clientY], type = evt.type, eventType = t.events[type];
 
-        for (let i in event) {
+        for (let e in eventType) {
 
-            const itemId = event[i][0],
+            const itemId = eventType[e][0],
+            eventId = eventType[e][1],
             item = t.items[itemId],
-            [x,y] = item.dimensions,
+            [x,y] = item.xy(),
             shape = item.shape,
-            ev = item.events[event[i][1]],
-            assist = typeof ev.assist == "number" ? ev.assist : 0;
+            event = item.events[eventId],
+            assist = typeof event.assist == "number" ? event.assist : 0;
 
-            let [w,h] = item.dimensions.slice(2), itemBordersX, itemBordersY, result;
+            let [w,h] = item.abc(), itemBordersX, itemBordersY, result;
 
             if (shape == "arc") {
-
                 itemBordersX = [x-w-assist,x+w+assist];
                 itemBordersY = [y-w-assist,y+w+assist];
                 h = w;
                 result = t.checkMouse({mouse,shape,center:[x,y],radius:w,assist});
-
             }
-
             else {
-
                 itemBordersX = [x-assist,x+w+assist];
                 itemBordersY = [y-assist,y+h+assist];
                 result = t.checkMouse({mouse,shape,bordersX:itemBordersX,bordersY:itemBordersY});
-
             }
 
             if (result) {
 
                 evt.mouse = {x:evt.clientX,y:evt.clientY};
-                evt.dimensions = item.dimensions;
-                evt.itemX = x;
-                evt.itemY = y;
-                evt.width = w;
-                evt.height = h;
-                evt.shape = shape;
                 evt.id = itemId;
+                evt.item = item;
 
                 t._evt = evt;
 
-                ev.bindself == false ? ev.callback() : ev.callback.call(t,evt);
+                event.bindself == false ? event.callback() : event.callback.call(t,item,evt);
 
             }
 
@@ -224,10 +214,6 @@ class CanvasController {
 
     }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                      NEEDS OPTIMIZATION
     gravity() {
 
         if (!this._isPaused) {
@@ -250,59 +236,64 @@ class CanvasController {
 
             for (let i in items) {
 
-                const id = items[i]
+                const id = items[i], item = t.items[id];
 
-                if (t.items[id].physX.enable && !t.itemIsDragged(id)) {
+                if (item.enable() && !item.isDragged()) {
 
-                    const item = t.items[id], physX = item.physX, {gravity, bounce, friction, acc} = physX, {shape, dimensions} = item, [x, y] = dimensions, speedMult = t.speedMult;
-                    let limitsX, limitsY, nextPos = [x, y], adjust1, adjust2;
+                    const physX = item.phX(), 
+                    {gravity, bounce, friction, acc} = physX, 
+                    {shape, dimensions} = item, 
+                    [x, y] = dimensions, 
+                    speedMult = t.speedMult;
+                    let limitsX, limitsY, nextStep = [], adjust1, adjust2;
 
-                    // y
-                    acc[1] += (gravity / fps) * speedMult;
-                    nextPos[1] += acc[1];
+
                     // x
                     acc[0] = acc[0] * (1 - (friction / 100));
-                    nextPos[0] += (acc[0] / fps) * speedMult;
+                    nextStep[0] = x + (acc[0] / fps) * speedMult;
+                    // y
+                    acc[1] += (gravity / fps) * speedMult;
+                    nextStep[1] = y + acc[1];
 
                     if (shape == "arc") {
-                        const r = item.dimensions[2];
+                        const r = item.a();
                         limitsX = [r, clientWidth - r];
                         limitsY = [r, clientHeight - r];
                     }
                     else {
-                        const [w,h] = item.dimensions.slice(2);
+                        const [w,h] = item.abc();
                         limitsX = [0, clientWidth - w];
                         limitsY = [0, clientHeight - h];
                     }
 
-                    const inboundsX = inBounds(nextPos[0],limitsX), inboundsY = inBounds(nextPos[1],limitsY);
+                    const inboundsX = inBounds(nextStep[0],limitsX), inboundsY = inBounds(nextStep[1],limitsY);
 
                     if (inboundsX != 0 && inboundsY == 0) {
                         adjust1 = inboundsX == -1 ? limitsX[0] : limitsX[1];
-                        t.setItemAcc(id, acc);
-                        t.setItemPos(id, {x:adjust1,y:nextPos[1]});
-                        t.itemHBounce(id);
+                        item._acc(acc);
+                        item._xy({x:adjust1,y:nextStep[1]});
+                        item.hBounce();
                     }
                     else if (inboundsY != 0 && inboundsX == 0) {
                         adjust1 = inboundsY == -1 ? limitsY[0] : limitsY[1];
-                        t.setItemPos(id, {x:nextPos[0],y:adjust1});
-                        t.itemVBounce(id);
+                        item._xy({x:nextStep[0],y:adjust1});
+                        item.vBounce();
                     }
                     else if (inboundsX != 0 && inboundsY != 0) {
                         adjust1 = inboundsX == -1 ? limitsX[0] : limitsX[1];
                         adjust2 = inboundsY == -1 ? limitsY[0] : limitsY[1];
-                        t.itemHBounce(id);
-                        t.itemVBounce(id);
-                        t.setItemPos(id, {x:adjust1,y:adjust2});
+                        item.hBounce();
+                        item.vBounce();
+                        item._xy({x:adjust1,y:adjust2});
                     }
                     else {
-                        t.setItemAcc(id, acc);
-                        t.setItemPos(id, {x:nextPos[0],y:nextPos[1]});
+                        item._acc(acc);
+                        item._xy({x:nextStep[0],y:nextStep[1]});
                     }
 
                 }
 
-                else { t.setItemAcc(id, [0, 0]) }
+                else if (item.isDragged()) { item._acc([0, 0]) }
 
             }
 
@@ -406,7 +397,7 @@ class CanvasController {
         if (typeof items[i] != "undefined") {
 
             const item = items[i],
-            [ a, b, c, d, e ] = item.dimensions,
+            [ a, b, c, d, e ] = item.dims(),
             { shape, color } = item,
             { fill, stroke } = color;
             _2D.fillStyle = typeof fill == "string" ? fill : "black";
@@ -425,88 +416,30 @@ class CanvasController {
         const t = this, item = t.items[i], g = [-15,-11,-7,7,11,15], R = [15,20,25,30,35];
 
         if (item.shape == "arc") {
-            const r = item.dimensions[2], [clientWidth, clientHeight] = t.client,
+            const r = item.a(), [clientWidth, clientHeight] = t.client,
             newX = Math.floor(Math.random() * (clientWidth-r*2)) + r,
             newY = Math.floor(Math.random() * (clientHeight-r*5)) + r*3,
             newHA = Math.floor(Math.random() * 1000) + 500;
-            t.items[i].physX.gravity = g[Math.floor(Math.random() * g.length)];
-            t.items[i].dimensions[2] = R[Math.floor(Math.random() * R.length)];
 
-            t.setItemPos(i,{x:newX,y:newY});
-            t.setItemHAcc(i,newHA);
+            item._gravity(g[Math.floor(Math.random() * g.length)]);
+            item._a(R[Math.floor(Math.random() * R.length)]);
+            item._xy({x:newX,y:newY});
+            item._hAcc(newHA);
         }
-    }
-
-    itemIsDragged(i) {
-          return this.items[i].physX.isDragged;
-    }
-
-    setItemPos(i,{x,y}) {
-        this.items[i].dimensions[0] = typeof x == "number" ? x : this.items[i].dimensions[0];
-        this.items[i].dimensions[1] = typeof y == "number" ? y : this.items[i].dimensions[1];
-    }
-
-    setItemColor(i,color) {
-        this.items[i].color.fill = color;
-        this.items[i].color.stroke = color;
-    }
-
-    setItemAcc(i,acc) {
-      this.items[i].physX.acc = acc;
-    }
-
-    // horizontal acc
-    setItemHAcc(i, acc) {
-      this.items[i].physX.acc[0] = acc;
-    }
-
-    // vertical acc
-    setItemVAcc(i, acc) {
-      this.items[i].physX.acc[1] = acc;
-    }
-
-    // horizontal bounce
-    itemHBounce(i) {
-      this.items[i].physX.acc[0] *= -this.items[i].physX.bounce;
-    }
-
-    // vertical bounce
-    itemVBounce(i) {
-      this.items[i].physX.acc[1] *= -this.items[i].physX.bounce;
     }
 
     setItemRandomColor(i) {
       const color = `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.4)`;
-      this.setItemFillColor(i,color);
-      this.setItemStrokeColor(i,color);
-    }
-
-    setItemFillColor(i,color) {
-        this.items[i].color.fill = color;
-    }
-
-    setItemStrokeColor(i,color) {
-        this.items[i].color.stroke = color;
-    }
-
-    getVar(name) {
-        return this._vars[name]
-    }
-
-    setVar(name,value) {
-        this._vars[name] = value;
-    }
-
-    delVar(name) {
-        delete this._vars[name]
+      this.items[i]._fill(color);
+      this.items[i]._stroke(color);
     }
 
     centerMouseX() {
-        return this._evt.shape == "arc" ? this._evt.mouse.x : this._evt.mouse.x - this._evt.width / 2;
+        return this._evt.item.sh() == "arc" ? this._evt.mouse.x : this._evt.mouse.x - this._evt.item.a() / 2;
     }
 
     centerMouseY() {
-        return this._evt.shape == "arc" ? this._evt.mouse.y : this._evt.mouse.y - this._evt.height / 2;
+        return this._evt.item.sh() == "arc" ? this._evt.mouse.y : this._evt.mouse.y - this._evt.item.b() / 2;
     }
 
     centerMouse() {
@@ -544,6 +477,195 @@ class CanvasController {
     stop() {
         clearInterval(this.refreshFrame);
         delete this.refreshFrame;
+    }
+
+}
+
+class CanvasItem {
+
+    constructor(item) {
+        for (let key in item) {
+            this[key] = item[key];
+        }
+    }
+
+    sh() {
+        return this.shape;
+    }
+
+    _sh(v) {
+        this.shape = v;
+    }
+
+    dims() {
+        return this.dimensions;
+    }
+
+    _dims(v) {
+        this.dimensions = v;
+    }
+
+    x() {
+        return this.dimensions[0];
+    }
+
+    _x(v) {
+        this.dimensions[0] = v;
+    }
+
+    y() {
+        return this.dimensions[1];
+    }
+
+    _y(v) {
+        this.dimensions[1] = v;
+    }
+
+    xy() {
+        return this.dimensions.slice(0,2);
+    }
+
+    _xy({x,y}) {
+        this.dimensions[0] = x;
+        this.dimensions[1] = y;
+    }
+
+    a() {
+        return this.dimensions[2];
+    }
+
+    _a(v) {
+        this.dimensions[2] = v;
+    }
+
+    b() {
+        return this.dimensions[3];
+    }
+
+    _b(v) {
+        this.dimensions[3] = v;
+    }
+
+    c() {
+        return this.dimensions[4];
+    }
+
+    _c(v) {
+        this.dimensions[4] = v;
+    }
+
+    abc() {
+        return this.dimensions.slice(2);
+    }
+
+    color() {
+        return this.color;
+    }
+
+    _color({fill,stroke}) {
+        this.color.fill = fill;
+        this.color.stroke = stroke;
+    }
+
+    fill() {
+        return this.color.fill;
+    }
+
+    _fill(v) {
+        this.color.fill = v;
+    }
+
+    stroke() {
+        return this.color.stroke;
+    }
+
+    _stroke(v) {
+        this.color.stroke = v;
+    }
+
+    phX() {
+        return this.physX;
+    }
+
+    enable() {
+        return this.physX.enable;
+    }
+
+    _enable(v) {
+        this.physX.enable = v;
+    }
+
+    gravity() {
+        return this.physX.gravity;
+    }
+
+    _gravity(v) {
+        this.physX.gravity = v;
+    }
+
+    bounce() {
+        return this.physX.bounce;
+    }
+
+    _bounce(v) {
+        this.physX.bounce = v;
+    }
+
+    hBounce() {
+      this.physX.acc[0] *= -this.physX.bounce;
+    }
+
+    vBounce() {
+      this.physX.acc[1] *= -this.physX.bounce;
+    }
+
+    friction() {
+        return this.physX.friction;
+    }
+
+    _friction(v) {
+        this.physX.friction = v;
+    }
+
+    acc() {
+        return this.physX.acc;
+    }
+
+    _acc([hAcc,vAcc]) {
+        this.physX.acc[0] = hAcc;
+        this.physX.acc[1] = vAcc;
+    }
+
+    hAcc() {
+        return this.physX.acc[0];
+    }
+
+    _hAcc(v) {
+        this.physX.acc[0] = v;
+    }
+
+    vAcc() {
+        return this.physX.acc[1];
+    }
+
+    _vAcc(v) {
+        this.physX.acc[1] = v;
+    }
+
+    isDragged() {
+        return this.physX.isDragged;
+    }
+
+    _isDragged(v) {
+        this.physX.isDragged = v;
+    }
+
+    events() {
+        return this.events;
+    }
+
+    event(i) {
+        return this.events[i];
     }
 
 }
