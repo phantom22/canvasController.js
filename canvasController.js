@@ -15,23 +15,29 @@ class CanvasController {
 
     }
 
-    // {id,fps,grid,items}
+    // {id,fps,grid,background,items}
     validate(obj) {
 
-        const t = this,
-              id = obj.id;
+        const t = this, id = obj.id;
 
-        let {fps,items,grid} = obj;
+        let {fps,grid,background,items} = obj,
+        	{draw,cellSize,lineWidth,color,lineDash} = typeof grid == "object" ? grid : {};
         
         if (typeof id == "undefined" || !document.getElementById(id)) return;
 
         t.id = id;
         fps = typeof fps == "number" ? fps : 60;
         t.fps = () => fps;
-        t.grid = typeof grid == "boolean" ? grid : false;
+        draw = typeof draw == "boolean" ? draw : false;
+        cellSize = typeof cellSize == "number" ? cellSize : 100;
+        lineWidth = typeof lineWidth == "number" ? lineWidth : 1;
+        color = typeof color == "string" ? color : "white";
+        lineDash = typeof lineDash != "undefined" && Array.isArray(lineDash) && lineDash.length == 2 && typeof lineDash.reduce((a,b)=>a+b) == "number" ? lineDash : [0,0];
+        t.grid = new CanvasGrid({draw,cellSize,lineWidth,strokeStyle:color,lineDash});
         t.items = [];
+        t.background = typeof background == "string" ? background : "black";
 
-        const context = t.getCanvas().getContext("2d");
+        const context = t.getCanvas().getContext("2d", {alpha: false});
 
         t._2D = () => context;
 
@@ -43,7 +49,15 @@ class CanvasController {
 
         t.start();
 
-      }
+    }
+
+    bg() {
+    	return this.background;
+    }
+
+    _bg(v) {
+    	this.background = v;
+    }
 
     // {shape,dimensions,color:{fill,stroke},physX:{enable,bounce,friction},events}
     addItem(item) {
@@ -324,7 +338,7 @@ class CanvasController {
         if (_isPaused == false) {
 
             t.canvasAdapt();
-            //t.clearFrame();
+            t.clearFrame();
             t.drawGrid();
             t.gravity();
 
@@ -340,13 +354,15 @@ class CanvasController {
 
     drawGrid() {
 
-        if (this.grid == true) {
+    	const t = this, g = t.grid;
 
-            const t = this, _2D = t._2D(), { clientWidth, clientHeight } = t.getCanvas(), cellSize = 60, rows = Math.ceil(clientHeight / cellSize), columns = Math.ceil(clientWidth / cellSize);
+        if (g.dr() == true) {
+
+            const t = this, _2D = t._2D(), { clientWidth, clientHeight } = t.getCanvas(), cellSize = g.cell(), rows = Math.ceil(clientHeight / cellSize), columns = Math.ceil(clientWidth / cellSize);
             let xPos = cellSize, yPos = cellSize;
-            _2D.lineWidth = 2;
-            _2D.strokeStyle = "#1a1a1a";
-            _2D.setLineDash([7, 5]);
+            _2D.lineWidth = g.lWidth();
+            _2D.strokeStyle = g.st();
+            _2D.setLineDash(g.lDash());
 
             for (let i = 1; i < columns; i++) {
                 _2D.beginPath();
@@ -377,7 +393,8 @@ class CanvasController {
         const t = this, _2D = t._2D(),
         [ clientWidth, clientHeight ] = t.client;
 
-        _2D.clearRect(0,0,clientWidth,clientHeight);
+        _2D.fillStyle = t.bg();
+        _2D.fillRect(0,0,clientWidth,clientHeight);
 
     }
 
@@ -421,7 +438,7 @@ class CanvasController {
             newY = Math.floor(Math.random() * (clientHeight-r*5)) + r*3,
             newHA = Math.floor(Math.random() * 1000) + 500;
 
-            item._gravity(g[Math.floor(Math.random() * g.length)]);
+            item._gr(g[Math.floor(Math.random() * g.length)]);
             item._a(R[Math.floor(Math.random() * R.length)]);
             item._xy({x:newX,y:newY});
             item._hAcc(newHA);
@@ -477,6 +494,57 @@ class CanvasController {
     stop() {
         clearInterval(this.refreshFrame);
         delete this.refreshFrame;
+    }
+
+}
+
+class CanvasGrid {
+
+    constructor(grid) {
+        for (let key in grid) {
+            this[key] = grid[key];
+        }
+    }
+
+
+    dr() {
+    	return this.draw;
+    }
+
+    _dr(v) {
+    	this.draw = v;
+    }
+
+    cell() {
+    	return this.cellSize;
+    }
+
+    _cell(v) {
+    	this.cellSize = v;
+    }
+
+    lWidth() {
+    	return this.lineWidth;
+    }
+
+    _lWidth(v) {
+    	this.lineWidth = v;
+    }
+
+    lDash() {
+    	return this.lineDash;
+    }
+
+    _lDash(v) {
+    	this.lineDash = v;
+    }
+
+    st() {
+    	return this.strokeStyle;
+    }
+
+    _st(v) {
+    	this.strokeStyle = v;
     }
 
 }
@@ -595,19 +663,19 @@ class CanvasItem {
         this.physX.enable = v;
     }
 
-    gravity() {
+    gr() {
         return this.physX.gravity;
     }
 
-    _gravity(v) {
+    _gr(v) {
         this.physX.gravity = v;
     }
 
-    bounce() {
+    bo() {
         return this.physX.bounce;
     }
 
-    _bounce(v) {
+    _bo(v) {
         this.physX.bounce = v;
     }
 
@@ -619,11 +687,11 @@ class CanvasItem {
       this.physX.acc[1] *= -this.physX.bounce;
     }
 
-    friction() {
+    fr() {
         return this.physX.friction;
     }
 
-    _friction(v) {
+    _fr(v) {
         this.physX.friction = v;
     }
 
@@ -660,11 +728,11 @@ class CanvasItem {
         this.physX.isDragged = v;
     }
 
-    events() {
+    evts() {
         return this.events;
     }
 
-    event(i) {
+    ev(i) {
         return this.events[i];
     }
 
