@@ -252,12 +252,12 @@ class CanvasController {
 
                 const id = items[i], item = t.items[id];
 
-                if (item.enable() && !item.isDragged()) {
+                if (item.phEnable() && !item.isDragged()) {
 
                     const physX = item.phX(), 
-                    {gravity, bounce, friction, acc} = physX, 
-                    {shape, dimensions} = item, 
-                    [x, y] = dimensions, 
+                    {gravity, bounce, friction, acc} = item.phX(), 
+                    shape = item.sh(), 
+                    [x, y] = item.xy(), 
                     speedMult = t.speedMult;
                     let limitsX, limitsY, nextStep = [], adjust1, adjust2;
 
@@ -358,8 +358,11 @@ class CanvasController {
 
         if (g.dr() == true) {
 
-            const t = this, _2D = t._2D(), { clientWidth, clientHeight } = t.getCanvas(), cellSize = g.cell(), rows = Math.ceil(clientHeight / cellSize), columns = Math.ceil(clientWidth / cellSize);
+            const t = this, _2D = t._2D(), { clientWidth, clientHeight } = t.getCanvas(), cellSize = g.cell(), 
+                  rows = Math.ceil(clientHeight / cellSize), columns = Math.ceil(clientWidth / cellSize);
+
             let xPos = cellSize, yPos = cellSize;
+
             _2D.lineWidth = g.lWidth();
             _2D.strokeStyle = g.st();
             _2D.setLineDash(g.lDash());
@@ -409,22 +412,16 @@ class CanvasController {
 
     drawItem(i) {
 
-        const t = this, items = t.items, _2D = t._2D();
+        const _2D = this._2D(),
+        item = this.items[i],
+        dims = item.dims(),
+        shape = item.sh();
+        _2D.fillStyle = item.fill();
+        _2D.strokeStyle = item.stroke();
 
-        if (typeof items[i] != "undefined") {
-
-            const item = items[i],
-            [ a, b, c, d, e ] = item.dims(),
-            { shape, color } = item,
-            { fill, stroke } = color;
-            _2D.fillStyle = typeof fill == "string" ? fill : "black";
-            _2D.strokeStyle = typeof stroke == "string" ? stroke : _2D.fillStyle;
-
-            switch (shape) {
-                case "fillRect": _2D[shape](a,b,c,d); break;
-                case "arc": _2D.beginPath(); _2D[shape](a,b,c,d,e); _2D.fill(); _2D.stroke(); break;
-            }
-
+        switch (shape) {
+            case "fillRect": _2D[shape](...dims); break;
+            case "arc": _2D.beginPath(); _2D[shape](...dims); _2D.fill(); _2D.stroke(); break;
         }
 
     }
@@ -655,11 +652,11 @@ class CanvasItem {
         return this.physX;
     }
 
-    enable() {
+    phEnable() {
         return this.physX.enable;
     }
 
-    _enable(v) {
+    _phEnable(v) {
         this.physX.enable = v;
     }
 
