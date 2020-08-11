@@ -1,18 +1,58 @@
 class CanvasGrid {
 
-    constructor(grid) {
+    constructor(grid,context) {
         for (let key in grid) {
             this[key] = grid[key];
         }
+
+        this._2D = context;
     }
 
+    draw(client) {
 
-    dr() {
-        return this.draw;
+        const t = this;
+
+        if (t.en() == true) {
+
+            const _2D = t._2D, [ clientWidth, clientHeight ] = client, cellSize = t.cell(), 
+                  rows = Math.ceil(clientHeight / cellSize), columns = Math.ceil(clientWidth / cellSize);
+
+            let xPos = cellSize, yPos = cellSize;
+
+            _2D.lineWidth = t.lWidth();
+            _2D.strokeStyle = t.st();
+            _2D.setLineDash(t.lDash());
+
+            for (let i = 1; i < columns; i++) {
+                _2D.beginPath();
+                _2D.moveTo(xPos, 0);
+                _2D.lineTo(xPos, clientHeight);
+                _2D.stroke();
+                xPos += cellSize;
+            }
+
+            for (let i = 1; i < rows; i++) {
+                _2D.beginPath();
+                _2D.moveTo(0, yPos);
+                _2D.lineTo(clientWidth, yPos);
+                _2D.stroke();
+                yPos += cellSize;
+            }
+
+            _2D.lineWidth = 1;
+            _2D.strokeStyle = "";
+            _2D.setLineDash([]);
+
+        }
+
     }
 
-    _dr(v) {
-        this.draw = v;
+    en() {
+        return this.enable;
+    }
+
+    _en(v) {
+        this.enable = v;
     }
 
     cell() {

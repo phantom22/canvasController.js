@@ -4,7 +4,7 @@ let total_clicks = 0,
 const C = new CanvasController({
   id: "display",
   fps: 120,
-  grid: {draw:true,cellSize:60,lineWidth:2,color:"#1a1a1a",lineDash:[7,5]},
+  grid: {enable:true,cellSize:60,lineWidth:2,color:"#1a1a1a",lineDash:[7,5]},
   background:"#0d0d0d",
   methods:[
     {name:"randomizeItemState",function(t){const o=this,a=o.items[t],h=[15,20,25,30,35];if("arc"==a.shape){const t=a.a(),[r,n]=o.client,M=Math.floor(Math.random()*(r-2*t))+t,m=Math.floor(Math.random()*(n-5*t))+3*t,e=Math.floor(1e3*Math.random())+500;a._gr(Math.floor(-20*Math.random()+20*Math.random())),a._a(h[Math.floor(Math.random()*h.length)]),a._xy([M,m]),a._hAcc(e)}}},

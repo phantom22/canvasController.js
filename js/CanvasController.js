@@ -27,25 +27,25 @@ class CanvasController {
         const t = this, id = obj.id;
 
         let {fps,grid,background,items} = obj,
-            {draw,cellSize,lineWidth,color,lineDash} = typeof grid == "object" ? grid : {};
+            {enable,cellSize,lineWidth,color,lineDash} = typeof grid == "object" ? grid : {};
         
         if (typeof id == "undefined" || !document.getElementById(id)) return;
 
         t.id = id;
+
+        const context = t.getCanvas().getContext("2d", {alpha: false});
+        t._2D = () => context;
+
         fps = typeof fps == "number" ? fps : 60;
         t.fps = () => fps;
-        draw = typeof draw == "boolean" ? draw : false;
+        enable = typeof enable == "boolean" ? enable : false;
         cellSize = typeof cellSize == "number" ? cellSize : 100;
         lineWidth = typeof lineWidth == "number" ? lineWidth : 1;
         color = typeof color == "string" ? color : "white";
         lineDash = typeof lineDash != "undefined" && Array.isArray(lineDash) && lineDash.length == 2 && typeof lineDash.reduce((a,b)=>a+b) == "number" ? lineDash : [0,0];
-        t.grid = new CanvasGrid({draw,cellSize,lineWidth,strokeStyle:color,lineDash});
+        t.grid = new CanvasGrid({enable,cellSize,lineWidth,strokeStyle:color,lineDash}, t._2D());
         t.items = [];
         t.background = typeof background == "string" ? background : "black";
-
-        const context = t.getCanvas().getContext("2d", {alpha: false});
-
-        t._2D = () => context;
 
         for (let index in items) {
 
@@ -255,9 +255,10 @@ class CanvasController {
 
             t.canvasAdapt();
             t.clearFrame();
-            t.drawGrid();
 
             const client = t.client;
+
+            t.grid.draw(client);
 
             for (let i in items) {
 
@@ -266,45 +267,6 @@ class CanvasController {
                 items[i].draw();
 
             }
-
-        }
-
-    }
-
-    drawGrid() {
-
-        const t = this, g = t.grid;
-
-        if (g.dr() == true) {
-
-            const t = this, _2D = t._2D(), { clientWidth, clientHeight } = t.getCanvas(), cellSize = g.cell(), 
-                  rows = Math.ceil(clientHeight / cellSize), columns = Math.ceil(clientWidth / cellSize);
-
-            let xPos = cellSize, yPos = cellSize;
-
-            _2D.lineWidth = g.lWidth();
-            _2D.strokeStyle = g.st();
-            _2D.setLineDash(g.lDash());
-
-            for (let i = 1; i < columns; i++) {
-                _2D.beginPath();
-                _2D.moveTo(xPos, 0);
-                _2D.lineTo(xPos, clientHeight);
-                _2D.stroke();
-                xPos += cellSize;
-            }
-
-            for (let i = 1; i < rows; i++) {
-                _2D.beginPath();
-                _2D.moveTo(0, yPos);
-                _2D.lineTo(clientWidth, yPos);
-                _2D.stroke();
-                yPos += cellSize;
-            }
-
-            _2D.lineWidth = 1;
-            _2D.strokeStyle = "";
-            _2D.setLineDash([]);
 
         }
 
@@ -326,8 +288,6 @@ class CanvasController {
         c.width = clientWidth;
         c.height = clientHeight;
         t.client = [clientWidth, clientHeight];
-
-        t.items.forEach(v => v.client = t.client);
 
     }
 
