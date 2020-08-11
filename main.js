@@ -1,26 +1,8 @@
 let total_clicks = 0,
 	accurate_clicks = 0;
 
-const randomizeItemState = function(i) {
-
-    const t = this, item = t.items[i], g = [-15,-11,-7,7,11,15], R = [15,20,25,30,35];
-
-    if (item.shape == "arc") {
-        const r = item.a(), [clientWidth, clientHeight] = t.client,
-        newX = Math.floor(Math.random() * (clientWidth-r*2)) + r,
-        newY = Math.floor(Math.random() * (clientHeight-r*5)) + r*3,
-        newHA = Math.floor(Math.random() * 1000) + 500;
-
-        item._gr(Math.floor(Math.random() * -20 + Math.random() * 20));
-        item._a(R[Math.floor(Math.random() * R.length)]);
-        item._xy([newX,newY]);
-        item._hAcc(newHA);
-    }
-}, setItemRandomColor = function(i) {
-    const color = `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.4)`;
-    this.items[i]._fill(color);
-    this.items[i]._stroke(color);
-};
+const randomizeItemState=function(t){const o=this,a=o.items[t],h=[15,20,25,30,35];if("arc"==a.shape){const t=a.a(),[r,n]=o.client,M=Math.floor(Math.random()*(r-2*t))+t,m=Math.floor(Math.random()*(n-5*t))+3*t,e=Math.floor(1e3*Math.random())+500;a._gr(Math.floor(-20*Math.random()+20*Math.random())),a._a(h[Math.floor(Math.random()*h.length)]),a._xy([M,m]),a._hAcc(e)}},
+      setItemRandomColor=function(t){const o=`rgba(${Math.floor(255*Math.random())},${Math.floor(255*Math.random())},${Math.floor(255*Math.random())},0.4)`;this.items[t]._fill(o),this.items[t]._stroke(o)};
 
 const C = new CanvasController({
   id: "display",
