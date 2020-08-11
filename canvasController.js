@@ -15,13 +15,19 @@ class CanvasController {
 
     }
 
+    addMethod(name,func) {
+        if (typeof func=="function") {
+            this[name] = func;
+        }
+    }
+
     // {id,fps,grid,background,items}
     validate(obj) {
 
         const t = this, id = obj.id;
 
         let {fps,grid,background,items} = obj,
-        	{draw,cellSize,lineWidth,color,lineDash} = typeof grid == "object" ? grid : {};
+            {draw,cellSize,lineWidth,color,lineDash} = typeof grid == "object" ? grid : {};
         
         if (typeof id == "undefined" || !document.getElementById(id)) return;
 
@@ -52,11 +58,11 @@ class CanvasController {
     }
 
     bg() {
-    	return this.background;
+        return this.background;
     }
 
     _bg(v) {
-    	this.background = v;
+        this.background = v;
     }
 
     // {shape,dimensions,color:{fill,stroke},physX:{enable,bounce,friction},events}
@@ -133,7 +139,7 @@ class CanvasController {
                 switch(dragAxis) {
                     case "x": _dragEvents.push({type:"mousemove",assist:b,callback:function(i){if (i.isDragged()) {i._x(this.centerMouseX())}},bindself:true}); break;
                     case "y": _dragEvents.push({type:"mousemove",assist:b,callback:function(i){if (i.isDragged()) {i._y(this.centerMouseY())}},bindself:true}); break;
-                    default : _dragEvents.push({type:"mousemove",assist:b,callback:function(i){if (i.isDragged()) {const [x,y] = this.centerMouse(); i._xy({x,y})}},bindself:true}); break;
+                    default : _dragEvents.push({type:"mousemove",assist:b,callback:function(i){if (i.isDragged()) {const [x,y] = this.centerMouse(); i._xy([x,y])}},bindself:true}); break;
                 }
 
                 _events.push(..._dragEvents);
@@ -223,94 +229,6 @@ class CanvasController {
 
     }
 
-    gravity() {
-
-        if (!this._isPaused) {
-
-            const t = this, items = t._physX, fps = t.fps(), [clientWidth, clientHeight] = t.client,
-            inBounds = (a, [b, c]) => { 
-
-                let r = 0;
-
-                if (b >= a) {
-                    r = -1;
-                }
-                else if (c <= a) {
-                    r = 1;
-                }
-
-                return r;
-
-            };
-
-            for (let i in items) {
-
-                const id = items[i], item = t.items[id];
-
-                if (item.phEnable() && !item.isDragged()) {
-
-                    const physX = item.phX(), 
-                    {gravity, bounce, friction, acc} = item.phX(), 
-                    shape = item.sh(), 
-                    [x, y] = item.xy(), 
-                    speedMult = t.speedMult;
-                    let limitsX, limitsY, nextStep = [], adjust1, adjust2;
-
-                    // x
-                    acc[0] = acc[0] * (1 - (friction / 100));
-                    nextStep[0] = x + (acc[0] / fps) * speedMult;
-                    // y
-                    acc[1] += (gravity / fps) * speedMult;
-                    nextStep[1] = y + acc[1];
-
-                    // TODO should not be affected by physX.enable
-                    if (shape == "arc") {
-                        const r = item.a();
-                        limitsX = [r, clientWidth - r];
-                        limitsY = [r, clientHeight - r];
-                    }
-                    else {
-                        const [w,h] = item.abc();
-                        limitsX = [0, clientWidth - w];
-                        limitsY = [0, clientHeight - h];
-                    }
-
-                    // if out of bounds
-                    const inboundsX = inBounds(nextStep[0],limitsX), inboundsY = inBounds(nextStep[1],limitsY);
-
-                    if (inboundsX != 0 && inboundsY == 0) {
-                        adjust1 = inboundsX == -1 ? limitsX[0] : limitsX[1];
-                        item._acc(acc);
-                        item._xy({x:adjust1,y:nextStep[1]});
-                        item.hBounce();
-                    }
-                    else if (inboundsY != 0 && inboundsX == 0) {
-                        adjust1 = inboundsY == -1 ? limitsY[0] : limitsY[1];
-                        item._xy({x:nextStep[0],y:adjust1});
-                        item.vBounce();
-                    }
-                    else if (inboundsX != 0 && inboundsY != 0) {
-                        adjust1 = inboundsX == -1 ? limitsX[0] : limitsX[1];
-                        adjust2 = inboundsY == -1 ? limitsY[0] : limitsY[1];
-                        item.hBounce();
-                        item.vBounce();
-                        item._xy({x:adjust1,y:adjust2});
-                    }
-                    else {
-                        item._acc(acc);
-                        item._xy({x:nextStep[0],y:nextStep[1]});
-                    }
-
-                }
-
-                else if (item.isDragged()) { item._acc([0, 0]) }
-
-            }
-
-        }
-
-    }
-
     checkMouse({mouse,shape,bordersX,bordersY,center,radius,assist}) {
 
         const t = this, 
@@ -329,17 +247,20 @@ class CanvasController {
 
     drawFrame() {
 
-        const t = this, items = t.items, _isPaused = t._isPaused;
+        const t = this, items = t.items, _isPaused = t._isPaused, fps = t.fps(), speedMult = t.speedMult;
 
         if (_isPaused == false) {
 
             t.canvasAdapt();
             t.clearFrame();
             t.drawGrid();
-            t.gravity();
+
+            const client = t.client;
 
             for (let i in items) {
 
+                items[i].step(fps,speedMult);
+                items[i].inBounds(client);
                 items[i].draw();
 
             }
@@ -350,7 +271,7 @@ class CanvasController {
 
     drawGrid() {
 
-    	const t = this, g = t.grid;
+        const t = this, g = t.grid;
 
         if (g.dr() == true) {
 
@@ -404,30 +325,8 @@ class CanvasController {
         c.height = clientHeight;
         t.client = [clientWidth, clientHeight];
 
-        t.items.forEach(v=>v.client = t.client);
+        t.items.forEach(v => v.client = t.client);
 
-    }
-
-    randomizeItemState(i) {
-        const t = this, item = t.items[i], g = [-15,-11,-7,7,11,15], R = [15,20,25,30,35];
-
-        if (item.shape == "arc") {
-            const r = item.a(), [clientWidth, clientHeight] = t.client,
-            newX = Math.floor(Math.random() * (clientWidth-r*2)) + r,
-            newY = Math.floor(Math.random() * (clientHeight-r*5)) + r*3,
-            newHA = Math.floor(Math.random() * 1000) + 500;
-
-            item._gr(Math.floor(Math.random() * -20 + Math.random() * 20));
-            item._a(R[Math.floor(Math.random() * R.length)]);
-            item._xy({x:newX,y:newY});
-            item._hAcc(newHA);
-        }
-    }
-
-    setItemRandomColor(i) {
-      const color = `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},0.4)`;
-      this.items[i]._fill(color);
-      this.items[i]._stroke(color);
     }
 
     centerMouseX() {
@@ -487,43 +386,43 @@ class CanvasGrid {
 
 
     dr() {
-    	return this.draw;
+        return this.draw;
     }
 
     _dr(v) {
-    	this.draw = v;
+        this.draw = v;
     }
 
     cell() {
-    	return this.cellSize;
+        return this.cellSize;
     }
 
     _cell(v) {
-    	this.cellSize = v;
+        this.cellSize = v;
     }
 
     lWidth() {
-    	return this.lineWidth;
+        return this.lineWidth;
     }
 
     _lWidth(v) {
-    	this.lineWidth = v;
+        this.lineWidth = v;
     }
 
     lDash() {
-    	return this.lineDash;
+        return this.lineDash;
     }
 
     _lDash(v) {
-    	this.lineDash = v;
+        this.lineDash = v;
     }
 
     st() {
-    	return this.strokeStyle;
+        return this.strokeStyle;
     }
 
     _st(v) {
-    	this.strokeStyle = v;
+        this.strokeStyle = v;
     }
 
 }
@@ -532,7 +431,7 @@ class CanvasItem {
 
     constructor(item,context) {
 
-    	const t = this;
+        const t = this;
 
         for (let key in item) {
             t[key] = item[key];
@@ -546,6 +445,70 @@ class CanvasItem {
             case "fillRect": t.draw = function() { t._2D.fillStyle = t.fill(); t._2D[shape](...t.dims()) }; break;
             case "arc": t.draw = function() { const _2D = t._2D; _2D.fillStyle = t.fill(); _2D.strokeStyle = t.stroke(); _2D.beginPath(); _2D[shape](...t.dims()); _2D.fill(); _2D.stroke() }; break;
         }
+    }
+
+    step(fps,speedMult) {
+
+        const t = this;
+
+        if (t.isDragged()) {
+            t._acc([0,0]);
+        }
+        else if (t.phEnable()) {
+
+            const {gravity, bounce, friction} = t.phX(), 
+            shape = t.sh(), 
+            [x, y] = t.xy(),
+            nextStep = [];
+
+            let acc = t.acc();
+
+            // x
+            acc[0] = acc[0] * (1 - (friction / 100));
+            nextStep[0] = x + (acc[0] / fps) * speedMult;
+            // y
+            acc[1] += (gravity / fps) * speedMult;
+            nextStep[1] = y + acc[1];
+
+            t._acc(acc);
+            t._xy(nextStep);
+
+        }
+
+    }
+
+    inBounds(client) {
+
+        const t = this, [x,y] = t.xy(), [clientWidth, clientHeight] = client;
+        let limitsX, limitsY;
+
+        if (t.sh() == "arc") {
+            const r = t.a();
+            limitsX = [r, clientWidth - r];
+            limitsY = [r, clientHeight - r];
+        }
+        else {
+            const [w,h] = t.abc();
+            limitsX = [0, clientWidth - w]; limitsY = [0, clientHeight - h];
+        }
+
+        if (limitsX[0] >= x) {
+            t._x(limitsX[0]),
+            t.hBounce();
+        }
+        else if (limitsX[1] <= x) {
+            t._x(limitsX[1]),
+            t.hBounce();
+        }
+        if (limitsY[0] >= y) {
+            t._y(limitsY[0]),
+            t.vBounce();
+        }
+        else if (limitsY[1] <= y) {
+            t._y(limitsY[1]),
+            t.vBounce();
+        }
+
     }
 
     sh() {
@@ -584,7 +547,7 @@ class CanvasItem {
         return this.dimensions.slice(0,2);
     }
 
-    _xy({x,y}) {
+    _xy([x,y]) {
         this.dimensions[0] = x;
         this.dimensions[1] = y;
     }
@@ -728,6 +691,8 @@ class CanvasItem {
     }
 
 }
+
+// TODO: customMethods should be inside the constructor 
 
 // {
 //  id,
