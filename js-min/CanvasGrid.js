@@ -1,0 +1,1 @@
+class CanvasGrid{constructor(t){for(let i in t)this[i]=t[i]}dr(){return this.draw}_dr(t){this.draw=t}cell(){return this.cellSize}_cell(t){this.cellSize=t}lWidth(){return this.lineWidth}_lWidth(t){this.lineWidth=t}lDash(){return this.lineDash}_lDash(t){this.lineDash=t}st(){return this.strokeStyle}_st(t){this.strokeStyle=t}}
