@@ -76,24 +76,19 @@ class CanvasController {
             color.stroke = typeof stroke == "string" ? stroke : "black";
             enable = typeof enable == "boolean" ? enable : false;
 
-
-            if (enable) {
-
-                t._physX.push(index);
-                physX.enable = enable;
-                physX.gravity = typeof gravity == "number" ? gravity : 9.81;
-                physX.bounce = typeof bounce == "number" ? bounce : 0.4;
-                physX.friction = typeof friction == "number" ? friction : 0.0;
-                physX.acc = Array.isArray(acc) && acc.length == 2 && typeof acc.reduce((a,b)=>a+b) == "number" ? acc : [0,0];
-                physX.isDragged = false;
-
-            }
+            t._physX.push(index);
+            physX.enable = typeof enable == "boolean" ? enable : false;
+            physX.gravity = typeof gravity == "number" ? gravity : 9.81;
+            physX.bounce = typeof bounce == "number" ? bounce : 0.4;
+            physX.friction = typeof friction == "number" ? friction : 0.0;
+            physX.acc = Array.isArray(acc) && acc.length == 2 && typeof acc.reduce((a,b)=>a+b) == "number" ? acc : [0,0];
+            physX.isDragged = false;
       
             const _validEvents = t.validateEvents(events);
             t.registerEvents(index,_validEvents);
             output = {shape,dimensions,color,physX,events:_validEvents};
 
-            t.items.push(new CanvasItem(output));
+            t.items.push(new CanvasItem(output,t._2D()));
 
         }
 
@@ -228,6 +223,11 @@ class CanvasController {
 
     }
 
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    //									LINE 412
     gravity() {
 
         if (!this._isPaused) {
@@ -261,7 +261,6 @@ class CanvasController {
                     speedMult = t.speedMult;
                     let limitsX, limitsY, nextStep = [], adjust1, adjust2;
 
-
                     // x
                     acc[0] = acc[0] * (1 - (friction / 100));
                     nextStep[0] = x + (acc[0] / fps) * speedMult;
@@ -269,6 +268,7 @@ class CanvasController {
                     acc[1] += (gravity / fps) * speedMult;
                     nextStep[1] = y + acc[1];
 
+                    // TODO should not be affected by physX.enable
                     if (shape == "arc") {
                         const r = item.a();
                         limitsX = [r, clientWidth - r];
@@ -280,6 +280,7 @@ class CanvasController {
                         limitsY = [0, clientHeight - h];
                     }
 
+                    // if out of bounds
                     const inboundsX = inBounds(nextStep[0],limitsX), inboundsY = inBounds(nextStep[1],limitsY);
 
                     if (inboundsX != 0 && inboundsY == 0) {
@@ -344,7 +345,7 @@ class CanvasController {
 
             for (let i in items) {
 
-                t.drawItem(i);
+                items[i].draw();
 
             }
 
@@ -408,21 +409,7 @@ class CanvasController {
         c.height = clientHeight;
         t.client = [clientWidth, clientHeight];
 
-    }
-
-    drawItem(i) {
-
-        const _2D = this._2D(),
-        item = this.items[i],
-        dims = item.dims(),
-        shape = item.sh();
-        _2D.fillStyle = item.fill();
-        _2D.strokeStyle = item.stroke();
-
-        switch (shape) {
-            case "fillRect": _2D[shape](...dims); break;
-            case "arc": _2D.beginPath(); _2D[shape](...dims); _2D.fill(); _2D.stroke(); break;
-        }
+        t.items.forEach(v=>v.client = t.client);
 
     }
 
@@ -435,7 +422,7 @@ class CanvasController {
             newY = Math.floor(Math.random() * (clientHeight-r*5)) + r*3,
             newHA = Math.floor(Math.random() * 1000) + 500;
 
-            item._gr(g[Math.floor(Math.random() * g.length)]);
+            item._gr(Math.floor(Math.random() * -20 + Math.random() * 20));
             item._a(R[Math.floor(Math.random() * R.length)]);
             item._xy({x:newX,y:newY});
             item._hAcc(newHA);
@@ -548,9 +535,21 @@ class CanvasGrid {
 
 class CanvasItem {
 
-    constructor(item) {
+    constructor(item,context) {
+
+    	const t = this;
+
         for (let key in item) {
-            this[key] = item[key];
+            t[key] = item[key];
+        }
+
+        const shape = t.sh();
+
+        t._2D = context;
+
+        switch (shape) {
+            case "fillRect": t.draw = function() { t._2D.fillStyle = t.fill(); t._2D[shape](...t.dims()) }; break;
+            case "arc": t.draw = function() { const _2D = t._2D; _2D.fillStyle = t.fill(); _2D.strokeStyle = t.stroke(); _2D.beginPath(); _2D[shape](...t.dims()); _2D.fill(); _2D.stroke() }; break;
         }
     }
 
